@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width,height=device-height,inital-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/>
+        <title>8583解包工具</title>
+        <link rel='stylesheet' href='css/style.css' />
+        <script type="text/javascript" src="js/jquery.min.js"></script>
+        <style type="text/css">
+            .div_section{
+                margin-top: 20px;
+            }
+            .input_box{
+                resize: none;
+                height: 120px;
+                width: 100%;
+                max-height: 200px;
+                max-width: 100%;
+            }
+            .div_table{
+                border-width: 1px;
+                border-color: #3498db;
+            }
+            .small_text_input{
+                width: 40px;
+            }
+            .margin_left_el{
+                margin-left: 10px;
+            }
+            #cond_table tr td input{
+                margin-left: 10px;
+            }
+            #cond_table tr td select{
+                margin-left: 10px;
+            }
+            #result_table{
+                max-width: 100%;
+                word-break:break-all; word-wrap:break-all;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="wrapper">
+            <!--<div id="header">
+                <div id="div_logo">lonord</div>
+                <ul id="navi">
+                    <li><a href="#">关于我</a></li>
+                    <li><a href="/web_app">我的应用</a></li>
+                    <li><a href="/">主页</a></li>
+                </ul>
+            </div>-->
+            <div id="content">
+                <h3><center>8583解包工具</center></h3>
+                <div class="div_section">
+                    <textarea id="in8583" class="input_box" ></textarea>
+                </div>
+                <div class="div_section">
+                    <table id="cond_table">
+                        <!--<tr>
+                            <td width="80px">
+                                域:<input id="cond_field" type="text" class="small_text_input"/>
+                            </td>
+                            <td width="150px">
+                                数据格式:<select id="cond_sel_type"><option value="1">ASC</option><option value="2">BCD</option><option value="3">R_BCD</option><option value="4">BIN</option></select>
+                            </td>
+                            <td width="190px">
+                                长度:<select id="cond_sel_len"><option value="-1">LLVAR</option><option value="-2">LLLVAR</option><option value="0">FIX</option></select><input id="cond_fix_len" disabled='disabled' type="text" class="small_text_input"/>
+                            </td>
+                            <td>
+                                <button id="cond_bt_del">删除</button>
+                            </td>
+                        </tr>-->
+                    </table>
+                    <div>
+                        <button id="cond_bt_add">添加规则</button>
+                    </div>
+                </div>
+                <div class="div_section">
+                    <button class="style-hover bt-press" onclick="unpack()">解包</button>
+                    <button class="style-hover bt-press margin_left_el" onclick="clearText()">清空</button>
+                </div>
+                <div class="div_section div_table">
+                    <table id="result_table">
+                    </table>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript" src="js/iso8583.js"></script>
+        <script type="text/javascript" src="js/bt-press.js"></script>
+        <script type="text/javascript">
+            function cond_change(){
+                if($(this).val()=='0'){
+                    $(this).parent().children(".cond_fix_len").removeAttr('disabled');
+                }
+                else{
+                    $(this).parent().children(".cond_fix_len").attr('disabled',"true");
+                }
+            }
+        
+            function cond_del(){
+                $(this).parent().parent().remove();
+            }
+            
+            $("#cond_bt_add").click(function(){
+                $("#cond_table").append('<tr class="cond_table_row"><td width="80px">域:<input type="text" class="cond_field small_text_input"/></td><td width="150px">数据格式:<select class="cond_sel_type"><option value="1">ASC</option><option value="2">BCD</option><option value="3">R_BCD</option><option value="4">BIN</option><option value="5">UTF8</option></select></td><td width="190px">长度:<select class="cond_sel_len"><option value="-1">LLVAR</option><option value="-2">LLLVAR</option><option value="0">FIX</option></select><input disabled="disabled" type="text" class="cond_fix_len small_text_input"/></td><td><button class="cond_bt_del">删除</button></td></tr>');
+                $(".cond_sel_len").on('change', cond_change);
+                $(".cond_bt_del").on('click', cond_del);
+            });
+            
+            function clearText(){
+                $("#in8583").val('');
+                $("#result_table").html('');
+            }
+            
+            function unpack(){
+                var in_data = $("#in8583").val();
+                in_data = in_data.replace(/\s/g, "");
+                if(in_data == ""){
+                    return;
+                }
+                var conf = [];
+                $(".cond_table_row").each(function(i){
+                    var d = $(".cond_table_row")[i];
+                    var df = $(d).find(".cond_field");
+                    var dt = $(d).find(".cond_sel_type");
+                    var dl = $(d).find(".cond_sel_len");
+                    var f = parseInt($(df).val());
+                    var type = parseInt($(dt).val());
+                    var len = parseInt($(dl).val());
+                    var c = {};
+                    c.field = f;
+                    c.type = type;
+                    if(len==0){
+                        c.len = parseInt($(d).find(".cond_fix_len").val());
+                    }
+                    else{
+                        c.len = len;
+                    }
+                    conf.push(c);
+                });
+                var iso = new iso8583(in_data,conf);
+                var result = iso.unpack();
+                $("#result_table").html('<tr><td colspan="2"><strong>TPDU</strong></td><td><strong>'+result.TPDU+'</strong></td></tr>');
+                $("#result_table").append('<tr><td colspan="2"><strong>报文头</strong></td><td><strong>'+result.header+'</strong></td></tr>');
+                $("#result_table").append('<tr><td colspan="2"><strong>消息类型</strong></td><td><strong>'+result.msg+'</strong></td></tr>');
+                result.field.forEach(function(d){
+                    $("#result_table").append('<tr><td valign="top" width="50px">['+d.n+']</td><td valign="top" width="50px">('+d.len+')</td><td>'+d.content+'</td></tr>');
+                });
+                if(result.err){
+                    $("#result_table").append('<tr><td colspan="3" style="color:red;">'+result.err+'</td></tr>');
+                }
+            }
+        </script>
+    </body>
+</html>
